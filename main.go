@@ -20,6 +20,7 @@ type indexMapping struct {
 
 func main() {
 	dbdir := flag.String("dbdir", "/root/.bitcoin/chainstate", "utxo or blockindex database dir")
+	targetFile := flag.String("file", "headers.dat", "result will save to the specified file")
 	prefix := flag.Int("prefix", 98, "please input leveldb key prefix")
 	flag.Parse()
 
@@ -60,7 +61,8 @@ func main() {
 		}
 	}
 
-	file, err := os.OpenFile("./headers", os.O_CREATE | os.O_WRONLY| os.O_APPEND, os.FileMode(0644))
+	// target file "headers.data"
+	file, err := os.OpenFile(*targetFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
 	if err != nil {
 		panic(err)
 	}
