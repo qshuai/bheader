@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+
+	"github.com/bcext/gcash/wire"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // 读取连续的header文件
@@ -49,7 +53,22 @@ func main() {
 	var indexCount int
 	for iter.SeekToFirst(); iter.Valid(); iter.Next() {
 		if int(iter.GetKey()[0]) == *prefix {
+			value := iter.GetVal()
+			fmt.Println(iter.GetKey())
+			fmt.Println(iter.GetKeySize())
+			fmt.Println(value)
+			fmt.Println(iter.GetValSize())
 			indexCount++
+
+			var header wire.BlockHeader
+			err = header.Deserialize(bytes.NewReader(value[(len(value) - 80):]))
+			if err != nil {
+				panic(err)
+			}
+			spew.Dump(header)
+			if indexCount >= 3 {
+				break
+			}
 		}
 	}
 
