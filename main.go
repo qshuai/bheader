@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
 
+	"github.com/bcext/gcash/chaincfg/chainhash"
 	"github.com/bcext/gcash/wire"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // 读取连续的header文件
@@ -32,6 +35,13 @@ import (
 //	spew.Dump(header)
 //}
 
+var hashZero = bytes.Repeat([]byte{0}, 32)
+
+type indexMapping struct {
+	header *wire.BlockHeader
+	prev   string
+}
+
 func main() {
 	dbdir := flag.String("dbdir", "/root/.bitcoin/chainstate", "utxo or blockindex database dir")
 	prefix := flag.Int("prefix", 98, "please input leveldb key prefix")
@@ -51,13 +61,11 @@ func main() {
 	defer iter.Close()
 
 	var indexCount int
+	indexSet := make(map[string]indexMapping)
 	for iter.SeekToFirst(); iter.Valid(); iter.Next() {
-		if int(iter.GetKey()[0]) == *prefix {
+		if int(iter.GetKey()[0]) == *prefix && iter.GetKeySize() == 33 {
+			key := iter.GetKey()
 			value := iter.GetVal()
-			fmt.Println(iter.GetKey())
-			fmt.Println(iter.GetKeySize())
-			fmt.Println(value)
-			fmt.Println(iter.GetValSize())
 			indexCount++
 
 			var header wire.BlockHeader
@@ -65,11 +73,31 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			spew.Dump(header)
-			if indexCount >= 3 {
-				break
+
+			var hash chainhash.Hash
+			hash.SetBytes(key[1:])
+
+			indexSet[header.PrevBlock.String()] = indexMapping{
+				header: &header,
+				prev:   hash.String(),
 			}
 		}
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 80*1240000))
+	tip := hex.EncodeToString(hashZero)
+	for i := 0; i < len(indexSet); i++ {
+		err := indexSet[tip].header.Serialize(buf)
+		if err != nil {
+			panic(err)
+		}
+
+		tip = indexSet[tip].prev
+	}
+
+	err = ioutil.WriteFile("headers", buf.Bytes(), os.ModePerm)
+	if err != nil {
+		panic(err)
 	}
 
 	fmt.Println("total block index count:", indexCount)
