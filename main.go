@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 )
 
 // 读取连续的header文件
@@ -45,10 +46,12 @@ func main() {
 	iter := dbw.Iterator()
 	defer iter.Close()
 
-	var utxoCount int
+	var indexCount int
 	for iter.SeekToFirst(); iter.Valid(); iter.Next() {
 		if int(iter.GetKey()[0]) == *prefix {
-			utxoCount++
+			indexCount++
 		}
 	}
+
+	fmt.Println("total block index count:", indexCount)
 }
