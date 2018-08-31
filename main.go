@@ -5,41 +5,17 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/bcext/gcash/chaincfg/chainhash"
 	"github.com/bcext/gcash/wire"
 )
 
-// 读取连续的header文件
-//func main() {
-//	f, err := os.OpenFile("./headers", os.O_RDONLY, 0)
-//	if err != nil {
-//		panic(err)
-//	}
-//	receiver := make([]byte, 80)
-//	f.Seek(160, 0)
-//	n, err := f.Read(receiver)
-//	if err != nil {
-//		panic(err)
-//	}
-//	fmt.Printf("read %d bytes", n)
-//
-//	var header wire.BlockHeader
-//	err = header.Deserialize(bytes.NewReader(receiver))
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	spew.Dump(header)
-//}
-
 var hashZero = bytes.Repeat([]byte{0}, 32)
 
 type indexMapping struct {
 	header *wire.BlockHeader
-	prev   string
+	hash   string
 }
 
 func main() {
@@ -79,23 +55,27 @@ func main() {
 
 			indexSet[header.PrevBlock.String()] = indexMapping{
 				header: &header,
-				prev:   hash.String(),
+				hash:   hash.String(),
 			}
 		}
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 80*1240000))
+	file, err := os.OpenFile("./headers", os.O_CREATE | os.O_WRONLY| os.O_APPEND, os.FileMode(0644))
+	if err != nil {
+		panic(err)
+	}
+
 	tip := hex.EncodeToString(hashZero)
 	for i := 0; i < len(indexSet); i++ {
-		err := indexSet[tip].header.Serialize(buf)
+		err := indexSet[tip].header.Serialize(file)
 		if err != nil {
 			panic(err)
 		}
 
-		tip = indexSet[tip].prev
+		tip = indexSet[tip].hash
 	}
 
-	err = ioutil.WriteFile("headers", buf.Bytes(), os.ModePerm)
+	err = file.Sync()
 	if err != nil {
 		panic(err)
 	}
