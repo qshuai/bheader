@@ -66,6 +66,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer file.Close()
 
 	tip := hex.EncodeToString(hashZero)
 	for i := 0; i < len(indexSet); i++ {
