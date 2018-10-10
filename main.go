@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	// target file "headers.data"
+	// target file "headers.***.data"
 	file, err := os.OpenFile(*targetFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
 	if err != nil {
 		panic(err)
